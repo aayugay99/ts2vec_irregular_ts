@@ -7,7 +7,7 @@ from ptls.nn.seq_encoder.containers import SeqEncoderContainer
 from ptls.nn.seq_encoder.abs_seq_encoder import AbsSeqEncoder
 from ptls.data_load.padded_batch import PaddedBatch
 
-from dilated_conv import DilatedConvEncoder
+from .dilated_conv import DilatedConvEncoder
 
 
 def generate_continuous_mask(B, T, n=5, l=0.1):
@@ -49,7 +49,7 @@ class ConvEncoder(AbsSeqEncoder):
 
         self.feature_extractor = DilatedConvEncoder(
             input_size,
-            [hidden_size] * num_layers + [hidden_size],
+            [input_size] * num_layers + [hidden_size],
             kernel_size=3
         )
 
@@ -85,7 +85,7 @@ class ConvEncoder(AbsSeqEncoder):
         # conv encoder
         x_masked = x_masked.transpose(1, 2)  # B x Ch x T
         out = self.repr_dropout(self.feature_extractor(x_masked))  # B x Co x T
-        out = x_masked.transpose(1, 2)  # B x T x Co
+        out = out.transpose(1, 2)  # B x T x Co
         
         out = PaddedBatch(out, x.seq_lens)
         if self.is_reduce_sequence:
