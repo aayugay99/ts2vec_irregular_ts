@@ -10,33 +10,11 @@ from ptls.data_load.padded_batch import PaddedBatch
 from .dilated_conv import DilatedConvEncoder
 
 
-def generate_continuous_mask(B, T, n=5, l=0.1):
-    res = torch.full((B, T), True, dtype=torch.bool)
-    if isinstance(n, float):
-        n = int(n * T)
-    n = max(min(n, T // 2), 1)
-    
-    if isinstance(l, float):
-        l = int(l * T)
-    l = max(l, 1)
-    
-    for i in range(B):
-        for _ in range(n):
-            t = np.random.randint(T-l+1)
-            res[i, t:t+l] = False
-    return res
-
-
-def generate_binomial_mask(B, T, p=0.5):
-    return torch.from_numpy(np.random.binomial(1, p, size=(B, T))).to(torch.bool)
-
-
 class ConvEncoder(AbsSeqEncoder):
     def __init__(self,
                  input_size=None,
                  hidden_size=None,
                  num_layers=10,
-                 mask_mode='binomial',
                  dropout=0,
                  is_reduce_sequence=False,  
                  reducer='maxpool'
@@ -45,7 +23,6 @@ class ConvEncoder(AbsSeqEncoder):
         super().__init__(is_reduce_sequence=is_reduce_sequence)
 
         self.hidden_size = hidden_size
-        self.mask_mode = mask_mode
 
         self.feature_extractor = DilatedConvEncoder(
             input_size,
@@ -57,34 +34,10 @@ class ConvEncoder(AbsSeqEncoder):
 
         self.reducer = reducer
 
-    def forward(self, x: PaddedBatch, mask=None):  # x: B x T x input_dims
-        shape = x.payload.size()
-
-        # generate & apply mask
-        if mask is None:
-            if self.training:
-                mask = self.mask_mode
-            else:
-                mask = 'all_true'
-        
-        if mask == 'binomial':
-            mask = generate_binomial_mask(shape[0], shape[1]).to(x.device)
-        elif mask == 'continuous':
-            mask = generate_continuous_mask(shape[0], shape[1]).to(x.device)
-        elif mask == 'all_true':
-            mask = x.payload.new_full((shape[0], shape[1]), True, dtype=torch.bool)
-        elif mask == 'all_false':
-            mask = x.payload.new_full((shape[0], shape[1]), False, dtype=torch.bool)
-        elif mask == 'mask_last':
-            mask = x.payload.new_full((shape[0], shape[1]), True, dtype=torch.bool)
-            mask[:, -1] = False
-        
-        x_masked = x.payload
-        x_masked[~mask] = 0
-        
-        # conv encoder
-        x_masked = x_masked.transpose(1, 2)  # B x Ch x T
-        out = self.repr_dropout(self.feature_extractor(x_masked))  # B x Co x T
+    def forward(self, x: PaddedBatch):  # x: B x T x input_dims        
+        # conv encoder 
+        input = x.payload.transpose(1, 2)  # B x Ch x T
+        out = self.repr_dropout(self.feature_extractor(input))  # B x Co x T
         out = out.transpose(1, 2)  # B x T x Co
         
         out = PaddedBatch(out, x.seq_lens)

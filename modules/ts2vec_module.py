@@ -8,9 +8,50 @@ from torchmetrics import MeanMetric
 from losses.hierarchical_contrastive_loss import HierarchicalContrastiveLoss
 
 
+def generate_continuous_mask(B, T, n=5, l=0.1):
+    res = torch.full((B, T), True, dtype=torch.bool)
+    if isinstance(n, float):
+        n = int(n * T)
+    n = max(min(n, T // 2), 1)
+    
+    if isinstance(l, float):
+        l = int(l * T)
+    l = max(l, 1)
+    
+    for i in range(B):
+        for _ in range(n):
+            t = np.random.randint(T-l+1)
+            res[i, t:t+l] = False
+    return res
+
+
+def generate_binomial_mask(B, T, p=0.5):
+    return torch.from_numpy(np.random.binomial(1, p, size=(B, T))).to(torch.bool)
+
+
 def take_per_row(A, indx, num_elem):
     all_indx = indx[:,None] + np.arange(num_elem)
     return A[torch.arange(all_indx.shape[0])[:,None], all_indx]
+
+
+def mask_input(x, mask):
+    shape = x.size()
+
+    if mask == 'binomial':
+        mask = generate_binomial_mask(shape[0], shape[1]).to(x.device)
+    elif mask == 'continuous':
+        mask = generate_continuous_mask(shape[0], shape[1]).to(x.device)
+    elif mask == 'all_true':
+        mask = x.payload.new_full((shape[0], shape[1]), True, dtype=torch.bool)
+    elif mask == 'all_false':
+        mask = x.payload.new_full((shape[0], shape[1]), False, dtype=torch.bool)
+    elif mask == 'mask_last':
+        mask = x.payload.new_full((shape[0], shape[1]), True, dtype=torch.bool)
+        mask[:, -1] = False
+
+    x[~mask] = 0
+
+    return x
 
 
 class TS2Vec(ABSModule):
@@ -19,6 +60,7 @@ class TS2Vec(ABSModule):
     def __init__(
         self,
         seq_encoder,
+        mask_mode="binomial",
         loss=None,
         validation_metric=None,
         optimizer_partial=None,
@@ -33,6 +75,7 @@ class TS2Vec(ABSModule):
             loss = HierarchicalContrastiveLoss(alpha=0.5, temporal_unit=0)
 
         self.temporal_unit = loss.temporal_unit
+        self.mask_mode = mask_mode
         
         # if validation_metric is None:
 
@@ -59,13 +102,16 @@ class TS2Vec(ABSModule):
         crop_eright = np.random.randint(low=crop_right, high=ts_l + 1)
         crop_offset = np.random.randint(low=-crop_eleft, high=ts_l - crop_eright + 1, size=x.size(0))
 
-        input1 = PaddedBatch(take_per_row(x, crop_offset + crop_eleft, crop_right - crop_eleft), seq_lens)
-        input2 = PaddedBatch(take_per_row(x, crop_offset + crop_left, crop_eright - crop_left), seq_lens)
+        input1 = take_per_row(x, crop_offset + crop_eleft, crop_right - crop_eleft)
+        input2 = take_per_row(x, crop_offset + crop_left, crop_eright - crop_left)
         
-        out1 = seq_encoder(input1).payload
+        input1_masked = mask_input(input1, self.mask_mode)
+        input2_masked = mask_input(input2, self.mask_mode)
+        
+        out1 = seq_encoder(PaddedBatch(input1_masked, seq_lens)).payload
         out1 = out1[:, -crop_l:]
-                
-        out2 = seq_encoder(input2).payload
+
+        out2 = seq_encoder(PaddedBatch(input2_masked, seq_lens)).payload
         out2 = out2[:, :crop_l]
         
         return (out1, out2), y
