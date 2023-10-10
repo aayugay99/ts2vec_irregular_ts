@@ -3,6 +3,7 @@ import numpy as np
 
 from ptls.frames.abs_module import ABSModule
 from ptls.data_load.padded_batch import PaddedBatch
+from ptls.nn.head import Head
 
 from torchmetrics import MeanMetric
 from losses.hierarchical_contrastive_loss import HierarchicalContrastiveLoss
@@ -61,6 +62,7 @@ class TS2Vec(ABSModule):
         self,
         seq_encoder,
         mask_mode="binomial",
+        head=None,
         loss=None,
         validation_metric=None,
         optimizer_partial=None,
@@ -70,6 +72,8 @@ class TS2Vec(ABSModule):
         
         Args:
         '''
+        if head is None:
+            head = Head(use_norm_encoder=True)
         
         if loss is None:
             loss = HierarchicalContrastiveLoss(alpha=0.5, temporal_unit=0)
@@ -77,14 +81,13 @@ class TS2Vec(ABSModule):
         self.temporal_unit = loss.temporal_unit
         self.mask_mode = mask_mode
         
-        # if validation_metric is None:
-
         super().__init__(validation_metric,
                          seq_encoder,
                          loss,
                          optimizer_partial,
                          lr_scheduler_partial)
 
+        self._head = head
         self.valid_loss = MeanMetric()
 
     def shared_step(self, x, y):
@@ -114,6 +117,10 @@ class TS2Vec(ABSModule):
         out2 = seq_encoder(PaddedBatch(input2_masked, seq_lens)).payload
         out2 = out2[:, :crop_l]
         
+        if self._head is not None:
+            out1 = self._head(out1)
+            out2 = self._head(out2)
+
         return (out1, out2), y
 
     def validation_step(self, batch, _):
