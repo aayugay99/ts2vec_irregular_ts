@@ -1,7 +1,7 @@
 name: ts2vec_churn_date
 
 sequence_encoder:
-  _target_: ptls.nn.RnnSeqEncoder
+  _target_: nn.seq_encoder.ConvSeqEncoder
   trx_encoder:
     _target_: ptls.nn.TrxEncoder
     use_batch_norm_with_lens: True
@@ -15,8 +15,7 @@ sequence_encoder:
       time_delta: identity,
     }
   hidden_size: 1024
-  bidir: False
-  trainable_starter: static
-  type: lstm
+  num_layers: 10
+  dropout: 0.1
 
 path_to_state_dict: checkpoints/ts2vec_churn_date.pth
