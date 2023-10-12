@@ -1,6 +1,6 @@
 name: ts2vec_churn
 
-path: data/preprocessed_new/churn.parquet
+path: data/preprocessed_new/age.parquet
 
 split:
   random_state: 42
@@ -8,14 +8,14 @@ split:
   test_size: 0.1
 
 dataset:
-  _target_: datasets.TS2VecDataset
-  min_seq_len: 20
+  _target_: datasets.datasets.TS2VecDataset
+  min_seq_len: 25
 
 preprocessor:
   _target_: ptls.preprocessing.PandasDataPreprocessor
   col_id: user_id
   col_event_time: timestamp
-  event_time_transformation: dt_to_timestamp
+  event_time_transformation: none
   cols_category: [mcc_code]
   cols_first_item: [global_target]
 
@@ -23,15 +23,15 @@ datamodule:
   _target_: ptls.frames.PtlsDataModule
   train_batch_size: 64
   valid_batch_size: 64
-  train_num_workers: 8
-  valid_num_workers: 8
+  train_num_workers: 16
+  valid_num_workers: 16
 
 model:
-  _target_: modules.TS2Vec
+  _target_: modules.ts2vec_module.TS2Vec
   optimizer_partial:
     _partial_: True
     _target_: torch.optim.Adam
-    lr: 0.0003
+    lr: 0.001
   lr_scheduler_partial: 
     _partial_: True
     _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
@@ -44,8 +44,8 @@ model:
       _target_: ptls.nn.TrxEncoder
       use_batch_norm_with_lens: True
       norm_embeddings: False
-      embeddings_noise: 0.0003
-      embeddings: {mcc_code: {in: 202, out: 24}}
+      embeddings_noise: 0.003
+      embeddings: {mcc_code: {in: 250, out: 16}}
       numeric_values: {amount: identity}
     hidden_size: 800
     num_layers: 10
@@ -56,10 +56,15 @@ checkpoint:
   monitor: valid_loss
   mode: min
 
-early_stopping:
-  _target_: pytorch_lightning.callbacks.EarlyStopping
-    monitor: valid_loss
-    patienc: 5
+early_stopping: null
+
+logger:
+  _target_: pytorch_lightning.loggers.CometLogger
+  api_key: agnHNC2vEt7tOxnnxT4LzYf7Y
+  project_name: ts2vec-irregular
+  workspace: stalex2902
+  experiment_name: TS2Vec_age_150_epochs_clean
+  display_summary_level: 0
 
 trainer:
   _target_: pytorch_lightning.trainer.Trainer
