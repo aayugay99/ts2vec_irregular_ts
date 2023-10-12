@@ -69,5 +69,5 @@ logger:
 trainer:
   _target_: pytorch_lightning.trainer.Trainer
   max_epochs: 150
-  devices: [0]
+  devices: [1]
   accelerator: gpu
