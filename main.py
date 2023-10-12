@@ -30,13 +30,17 @@ def main(cfg: DictConfig):
     model = instantiate(cfg["model"])
 
     checkpoint = instantiate(cfg["checkpoint"])
+    callbacks = [checkpoint]
 
-    trainer = instantiate(cfg["trainer"], callbacks=[checkpoint])
+    if cfg["early_stopping"] is not None:
+        es_callback = instantiate(cfg["early_stopping"])
+        callbacks.append(es_callback)
+
+    trainer = instantiate(cfg["trainer"], callbacks=callbacks)
     trainer.fit(model, datamodule)
 
     model.load_state_dict(torch.load(checkpoint.best_model_path)["state_dict"])
     torch.save(model.seq_encoder.state_dict(), f'{cfg["name"]}.pth')
-
 
 if __name__ == "__main__":
     main()

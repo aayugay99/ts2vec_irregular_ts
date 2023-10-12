@@ -60,6 +60,8 @@ checkpoint:
   monitor: recall_top_k
   mode: max
 
+early_stopping: null
+
 trainer:
   _target_: pytorch_lightning.trainer.Trainer
   max_epochs: 50

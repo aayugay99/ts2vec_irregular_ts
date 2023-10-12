@@ -56,6 +56,8 @@ checkpoint:
   monitor: valid_loss
   mode: min
 
+early_stopping: null
+
 trainer:
   _target_: pytorch_lightning.trainer.Trainer
   max_epochs: 50
