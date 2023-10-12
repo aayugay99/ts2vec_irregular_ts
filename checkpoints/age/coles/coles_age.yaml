@@ -12,9 +12,9 @@ sequence_encoder:
     numeric_values: {
       amount: identity,
     }
-  hidden_size: 1024
+  hidden_size: 800
   bidir: False
   trainable_starter: static
-  type: lstm
+  type: gru
 
 path_to_state_dict: checkpoints/age/coles/coles_age.pth
