@@ -1,6 +1,5 @@
 lightning_logs
 data
 __pycache__/
-__init__.py
 docker_scripts
 outputs

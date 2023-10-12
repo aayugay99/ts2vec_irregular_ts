@@ -1,6 +1,6 @@
 import hydra
 from hydra.utils import instantiate
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
 import pandas as pd
 
@@ -8,8 +8,7 @@ import torch
 
 from sklearn.model_selection import train_test_split
 
-
-@hydra.main(version_base=None, config_path="./config/churn/ts2vec", config_name="churn_ts2vec")
+@hydra.main(version_base=None, config_path="./config/age/ts2vec", config_name="ts2vec_age")
 def main(cfg: DictConfig):
     df = pd.read_parquet(cfg["path"])
 
@@ -35,8 +34,13 @@ def main(cfg: DictConfig):
     if cfg["early_stopping"] is not None:
         es_callback = instantiate(cfg["early_stopping"])
         callbacks.append(es_callback)
+    
+    if cfg["logger"] is not None:
+        logger = instantiate(cfg["logger"])
+        trainer = instantiate(cfg["trainer"], callbacks=callbacks, logger=logger)
+    else:
+        trainer = instantiate(cfg["trainer"], callbacks=callbacks)
 
-    trainer = instantiate(cfg["trainer"], callbacks=callbacks)
     trainer.fit(model, datamodule)
 
     model.load_state_dict(torch.load(checkpoint.best_model_path)["state_dict"])

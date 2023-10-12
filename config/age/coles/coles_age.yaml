@@ -61,6 +61,7 @@ checkpoint:
   mode: max
 
 early_stopping: null
+logger: null
 
 trainer:
   _target_: pytorch_lightning.trainer.Trainer
