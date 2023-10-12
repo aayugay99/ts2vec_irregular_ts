@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
 
-from sklearn.metrics import roc_auc_score, average_precision_score
+from tqdm import tqdm
+
+from sklearn.metrics import roc_auc_score, average_precision_score, accuracy_score
 from lightgbm import LGBMClassifier
 
 
@@ -27,7 +29,7 @@ def bootstrap_eval(X_train, X_test, y_train, y_test, n_runs=10):
     inds = np.arange(N)
 
     scores = []
-    for _ in range(n_runs):
+    for _ in tqdm(range(n_runs)):
         bootstrap_inds = np.random.choice(inds, size=N, replace=True)
 
         lgbm.fit(X_train[bootstrap_inds], y_train[bootstrap_inds])
@@ -37,13 +39,15 @@ def bootstrap_eval(X_train, X_test, y_train, y_test, n_runs=10):
         if y_pred.shape[1] == 2:
             scores.append({
                 "ROC-AUC": roc_auc_score(y_test, y_pred[:, 1]),
-                "PR-AUC": average_precision_score(y_test, y_pred[:, 1])
+                "PR-AUC": average_precision_score(y_test, y_pred[:, 1]),
+                "Accuracy": accuracy_score(y_test, y_pred.argmax(axis=1)),
             })
         
         else:
             scores.append({
                 "ROC-AUC": roc_auc_score(y_test, y_pred, average="macro", multi_class="ovr"),
-                "PR-AUC": average_precision_score(y_test, y_pred, average="macro")
+                "PR-AUC": average_precision_score(y_test, y_pred, average="macro"),
+                "Accuracy": accuracy_score(y_test, y_pred.argmax(axis=1))
             })
 
 

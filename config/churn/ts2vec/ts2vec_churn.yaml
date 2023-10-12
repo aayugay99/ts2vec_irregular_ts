@@ -1,0 +1,63 @@
+name: ts2vec_churn
+
+path: data/preprocessed_new/churn.parquet
+
+split:
+  random_state: 42
+  val_size: 0.1
+  test_size: 0.1
+
+dataset:
+  _target_: datasets.TS2VecDataset
+  min_seq_len: 15
+
+preprocessor:
+  _target_: ptls.preprocessing.PandasDataPreprocessor
+  col_id: user_id
+  col_event_time: timestamp
+  event_time_transformation: dt_to_timestamp
+  cols_category: [mcc_code]
+  cols_first_item: [global_target]
+
+datamodule:
+  _target_: ptls.frames.PtlsDataModule
+  train_batch_size: 128
+  valid_batch_size: 128
+  train_num_workers: 8
+  valid_num_workers: 8
+
+model:
+  _target_: modules.TS2Vec
+  optimizer_partial:
+    _partial_: True
+    _target_: torch.optim.Adam
+    lr: 0.004
+  lr_scheduler_partial: 
+    _partial_: True
+    _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+    factor: .9025
+    patience: 5
+    mode: min
+  seq_encoder: 
+    _target_: nn.seq_encoder.ConvSeqEncoder
+    trx_encoder: 
+      _target_: ptls.nn.TrxEncoder
+      use_batch_norm_with_lens: True
+      norm_embeddings: False
+      embeddings_noise: 0.0003
+      embeddings: {mcc_code: {in: 345, out: 24}}
+      numeric_values: {amount: identity}
+    hidden_size: 1024
+    num_layers: 10
+    dropout: 0.1
+
+checkpoint:
+  _target_: pytorch_lightning.callbacks.ModelCheckpoint
+  monitor: valid_loss
+  mode: min
+
+trainer:
+  _target_: pytorch_lightning.trainer.Trainer
+  max_epochs: 50
+  devices: [0]
+  accelerator: gpu
