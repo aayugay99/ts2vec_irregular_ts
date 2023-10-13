@@ -63,7 +63,7 @@ logger:
   api_key: agnHNC2vEt7tOxnnxT4LzYf7Y
   project_name: ts2vec-irregular
   workspace: stalex2902
-  experiment_name: TS2Vec_age_date_150_epochs_clean_correct_delta
+  experiment_name: TS2Vec_age_date_150_epochs
   display_summary_level: 0
 
 trainer:

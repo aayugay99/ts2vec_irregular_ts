@@ -44,7 +44,7 @@ def main(cfg: DictConfig):
     trainer.fit(model, datamodule)
 
     model.load_state_dict(torch.load(checkpoint.best_model_path)["state_dict"])
-    torch.save(model.seq_encoder.state_dict(), f'{cfg["name"]}_date_correct_delta.pth')
+    torch.save(model.seq_encoder.state_dict(), f'{cfg["name"]}.pth')
 
 if __name__ == "__main__":
     main()
