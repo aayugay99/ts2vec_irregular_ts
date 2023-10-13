@@ -8,18 +8,9 @@ import torch
 
 from sklearn.model_selection import train_test_split
 
-def calc_diff(x):
-    x_sorted = x.sort_values("timestamp")
-    x_sorted["time_delta"] = (
-        x_sorted["timestamp"] - x_sorted["timestamp"].shift().fillna(method="backfill")
-    ).astype("int64") // 1000000000
-    return x_sorted
-
 @hydra.main(version_base=None, config_path="./config/age/ts2vec", config_name="ts2vec_age")
 def main(cfg: DictConfig):
     df = pd.read_parquet(cfg["path"])
-
-    df = df.groupby("user_id").apply(lambda x: calc_diff(x)).reset_index(drop=True)
 
     preprocessor = instantiate(cfg["preprocessor"])
 
@@ -53,7 +44,7 @@ def main(cfg: DictConfig):
     trainer.fit(model, datamodule)
 
     model.load_state_dict(torch.load(checkpoint.best_model_path)["state_dict"])
-    torch.save(model.seq_encoder.state_dict(), f'{cfg["name"]}.pth')
+    torch.save(model.seq_encoder.state_dict(), f'{cfg["name"]}_date_correct_delta.pth')
 
 if __name__ == "__main__":
     main()
