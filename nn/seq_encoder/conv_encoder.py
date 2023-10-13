@@ -36,7 +36,12 @@ class ConvEncoder(AbsSeqEncoder):
 
     def forward(self, x: PaddedBatch):  # x: B x T x input_dims        
         # conv encoder 
-        input = x.payload.transpose(1, 2)  # B x Ch x T
+
+        if isinstance(x.payload, torch.Tensor):
+            input = x.payload.transpose(1, 2)  # B x Ch x T
+        else:
+            input = x.payload["embeddings"].transpose(1, 2)
+            
         out = self.repr_dropout(self.feature_extractor(input))  # B x Co x T
         out = out.transpose(1, 2)  # B x T x Co
         
