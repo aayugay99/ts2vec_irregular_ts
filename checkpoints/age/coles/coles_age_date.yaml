@@ -1,20 +1,21 @@
-name: coles_age
+name: coles_age_date
 
-seq_encoder:
-  _target_: ptls.nn.RnnSeqEncoder
-  trx_encoder:
+seq_encoder: 
+  _target_: ptls.nn.seq_encoder.RnnSeqEncoder
+  trx_encoder: 
     _target_: ptls.nn.TrxEncoder
     use_batch_norm_with_lens: True
     norm_embeddings: False
     embeddings_noise: 0.003
     embeddings: {mcc_code: {in: 250, out: 16}}
-    out_of_index: clip
     numeric_values: {
       amount: identity,
+      event_time: identity,
+      time_delta: identity
     }
   hidden_size: 800
+  type: gru
   bidir: False
   trainable_starter: static
-  type: gru
 
-path_to_state_dict: checkpoints/age/coles/coles_age.pth
+path_to_state_dict: checkpoints/age/coles/coles_age_date.pth

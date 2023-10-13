@@ -1,6 +1,6 @@
 name: coles_churn_date
 
-sequence_encoder:
+seq_encoder:
   _target_: ptls.nn.RnnSeqEncoder
   trx_encoder:
     _target_: ptls.nn.TrxEncoder

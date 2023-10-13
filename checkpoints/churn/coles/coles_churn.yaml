@@ -1,6 +1,6 @@
 name: coles_churn
 
-sequence_encoder:
+seq_encoder:
   _target_: ptls.nn.RnnSeqEncoder
   trx_encoder:
     _target_: ptls.nn.TrxEncoder
