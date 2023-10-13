@@ -1,6 +1,6 @@
 name: ts2vec_churn_date
 
-sequence_encoder:
+seq_encoder:
   _target_: nn.seq_encoder.ConvSeqEncoder
   trx_encoder:
     _target_: ptls.nn.TrxEncoder
