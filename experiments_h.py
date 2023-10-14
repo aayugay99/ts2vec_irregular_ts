@@ -310,7 +310,7 @@ class TS2Vec(ABSModule):
         return "valid_loss"
 
 
-for h in np.linspace(0.2, 20, 100):
+for h in np.linspace(1, 20, 96):
     trx_encoder = TimeTrxEncoder(
         col_time="event_time",
         embeddings={
@@ -348,7 +348,7 @@ for h in np.linspace(0.2, 20, 100):
 
     trainer = Trainer(
         max_epochs=30,
-        devices=[0],
+        devices=[1],
         accelerator="gpu",
         callbacks=[checkpoint]
     )
