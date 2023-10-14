@@ -32,7 +32,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-df = pd.read_parquet("data/preprocessed_new/churn.parquet")
+df = pd.read_parquet("data/preprocessed_new/default_date.parquet")
 
 preprocessor = PandasDataPreprocessor(
     col_id="user_id",
@@ -47,8 +47,13 @@ data = preprocessor.fit_transform(df[(df["time_delta"] >= 0)])
 val_size = 0.1
 test_size = 0.1
 
-train, val_test = train_test_split(data, test_size=test_size+val_size, random_state=42)
-val, test = train_test_split(val_test, test_size=test_size/(test_size+val_size), random_state=42)
+y = [data[i]["global_target"] for i in range(len(data))] 
+
+val_size = 0.1
+test_size = 0.1
+
+train, val_test, y_train, y_val_test = train_test_split(data, y, stratify=y, test_size=test_size+val_size, random_state=42)
+val, test, y_val, y_test = train_test_split(val_test, y_val_test, stratify=y_val_test, test_size=test_size/(test_size+val_size), random_state=42)
 
 train_ds = TS2VecDataset(train, min_seq_len=15)
 val_ds = TS2VecDataset(val, min_seq_len=15)
@@ -78,7 +83,7 @@ class TimeTrxEncoder(TrxEncoder):
         return PaddedBatch({"embeddings": embeddings, self.col_time: timestamps}, x.seq_lens)
     
 
-def hierarchical_contrastive_loss_weighted(z1, z2, t1, t2, h=1, alpha=0.5, temporal_unit=0):
+def hierarchical_contrastive_loss_weighted(z1, z2, t1, t2, h=1, sqrt=True, alpha=0.5, temporal_unit=0):
     B, T = z1.size(0), z1.size(1)
     
     loss = torch.tensor(0., device=z1.device)
@@ -103,8 +108,10 @@ def hierarchical_contrastive_loss_weighted(z1, z2, t1, t2, h=1, alpha=0.5, tempo
         t1 = t1.reshape(B, -1, 2).float().mean(dim=2).reshape(B, -1)
         t2 = t2.reshape(B, -1, 2).float().mean(dim=2).reshape(B, -1)
 
-        weights1 = torch.exp(-delta1 / (h*d)).unsqueeze(2)
-        weights2 = torch.exp(-delta2 / (h*d)).unsqueeze(2)
+        mult = np.sqrt(d) if sqrt else d
+
+        weights1 = torch.exp(-delta1 / (h*mult)).unsqueeze(2)
+        weights2 = torch.exp(-delta2 / (h*mult)).unsqueeze(2)
 
         z1 = F.max_pool1d(z1.transpose(1, 2), kernel_size=2).transpose(1, 2) * weights1
         z2 = F.max_pool1d(z2.transpose(1, 2), kernel_size=2).transpose(1, 2) * weights2
@@ -146,16 +153,17 @@ def temporal_contrastive_loss(z1, z2):
 
 
 class HierarchicalWeightedContrastiveLoss(nn.Module):
-    def __init__(self, h=1, alpha=0.5, temporal_unit=0):
+    def __init__(self, h=1, sqrt=True, alpha=0.5, temporal_unit=0):
         super().__init__()
 
         self.h = h
+        self.sqrt = sqrt
         self.alpha = alpha
         self.temporal_unit = temporal_unit
 
     def forward(self, embeddings, _):
         out1, out2, t1, t2 = embeddings
-        return hierarchical_contrastive_loss_weighted(out1, out2, t1, t2, self.h, self.alpha, self.temporal_unit)
+        return hierarchical_contrastive_loss_weighted(out1, out2, t1, t2, self.h, self.sqrt, self.alpha, self.temporal_unit)
     
 
 import torch
@@ -310,7 +318,7 @@ class TS2Vec(ABSModule):
         return "valid_loss"
 
 
-for h in list(range(45, 81, 5)):
+for h in [1] + list(range(5, 81, 5)):
     trx_encoder = TimeTrxEncoder(
         col_time="event_time",
         embeddings={
@@ -336,7 +344,7 @@ for h in list(range(45, 81, 5)):
 
     model = TS2Vec(
         seq_encoder,
-        loss=HierarchicalWeightedContrastiveLoss(h=h),
+        loss=HierarchicalWeightedContrastiveLoss(h=h, sqrt=True),
         optimizer_partial=optimizer_partial,
         lr_scheduler_partial=lr_scheduler_partial
     )
@@ -356,7 +364,7 @@ for h in list(range(45, 81, 5)):
     trainer.fit(model, datamodule)
 
     model.load_state_dict(torch.load(checkpoint.best_model_path)["state_dict"])
-    torch.save(model.seq_encoder.state_dict(), f"experiments_h_results/new/experiment_h={h}.pth")
+    torch.save(model.seq_encoder.state_dict(), f"experiments_h_results/sqrt_default/experiment_h={h}.pth")
 
 
     X_train, y_train = encode_data(model.seq_encoder, train_val_ds)
@@ -364,6 +372,65 @@ for h in list(range(45, 81, 5)):
 
     results = bootstrap_eval(X_train, X_test, y_train, y_test, n_runs=10)
 
-    results.to_csv(f"experiments_h_results/new/experiment_h={h}.csv", index=False)
+    results.to_csv(f"experiments_h_results/sqrt_default/experiment_h={h}.csv", index=False)
+
+    print(results.agg(["mean", "std"]))
+
+
+for h in [1] + list(range(5, 81, 5)):
+    trx_encoder = TimeTrxEncoder(
+        col_time="event_time",
+        embeddings={
+            "mcc_code": {"in": 345, "out": 24}
+        },
+        numeric_values={
+            "amount": "identity"
+        },
+        use_batch_norm_with_lens=True,
+        norm_embeddings=False,
+        embeddings_noise=0.0003
+    )
+
+    seq_encoder = ConvSeqEncoder(
+        trx_encoder,
+        hidden_size=1024,
+        num_layers=10,
+        dropout=0.1,
+    )
+
+    lr_scheduler_partial = partial(torch.optim.lr_scheduler.ReduceLROnPlateau, factor=.9025, patience=5, mode="min")
+    optimizer_partial = partial(torch.optim.Adam, lr=4e-3)
+
+    model = TS2Vec(
+        seq_encoder,
+        loss=HierarchicalWeightedContrastiveLoss(h=h, sqrt=False),
+        optimizer_partial=optimizer_partial,
+        lr_scheduler_partial=lr_scheduler_partial
+    )
+
+    checkpoint = ModelCheckpoint(
+        monitor="valid_loss", 
+        mode="min"
+    )
+
+    trainer = Trainer(
+        max_epochs=50,
+        devices=[1],
+        accelerator="gpu",
+        callbacks=[checkpoint]
+    )
+
+    trainer.fit(model, datamodule)
+
+    model.load_state_dict(torch.load(checkpoint.best_model_path)["state_dict"])
+    torch.save(model.seq_encoder.state_dict(), f"experiments_h_results/new_default/experiment_h={h}.pth")
+
+
+    X_train, y_train = encode_data(model.seq_encoder, train_val_ds)
+    X_test, y_test = encode_data(model.seq_encoder, test_ds)
+
+    results = bootstrap_eval(X_train, X_test, y_train, y_test, n_runs=10)
+
+    results.to_csv(f"experiments_h_results/new_default/experiment_h={h}.csv", index=False)
 
     print(results.agg(["mean", "std"]))
