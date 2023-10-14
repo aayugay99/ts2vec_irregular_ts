@@ -310,7 +310,7 @@ class TS2Vec(ABSModule):
         return "valid_loss"
 
 
-for h in [1] + list(range(5, 41, 5)):
+for h in list(range(65, 81, 5)):
     trx_encoder = TimeTrxEncoder(
         col_time="event_time",
         embeddings={
@@ -364,6 +364,6 @@ for h in [1] + list(range(5, 41, 5)):
 
     results = bootstrap_eval(X_train, X_test, y_train, y_test, n_runs=10)
 
-    results.to_csv(f"experiments_h_results/sqrt/experiment_h={h}.pth", index=False)
+    results.to_csv(f"experiments_h_results/sqrt/experiment_h={h}.csv", index=False)
 
     print(results.agg(["mean", "std"]))
