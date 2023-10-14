@@ -103,8 +103,8 @@ def hierarchical_contrastive_loss_weighted(z1, z2, t1, t2, h=1, alpha=0.5, tempo
         t1 = t1.reshape(B, -1, 2).float().mean(dim=2).reshape(B, -1)
         t2 = t2.reshape(B, -1, 2).float().mean(dim=2).reshape(B, -1)
 
-        weights1 = torch.exp(-delta1 / (h*d)).unsqueeze(2)
-        weights2 = torch.exp(-delta2 / (h*d)).unsqueeze(2)
+        weights1 = torch.exp(-delta1 / (h*np.sqrt(d))).unsqueeze(2)
+        weights2 = torch.exp(-delta2 / (h*np.sqrt(d))).unsqueeze(2)
 
         z1 = F.max_pool1d(z1.transpose(1, 2), kernel_size=2).transpose(1, 2) * weights1
         z2 = F.max_pool1d(z2.transpose(1, 2), kernel_size=2).transpose(1, 2) * weights2
@@ -356,7 +356,7 @@ for h in [1] + list(range(5, 41, 5)):
     trainer.fit(model, datamodule)
 
     model.load_state_dict(torch.load(checkpoint.best_model_path)["state_dict"])
-    torch.save(model.seq_encoder.state_dict(), f"experiments_h_results/experiment_h={h}.pth")
+    torch.save(model.seq_encoder.state_dict(), f"experiments_h_results/sqrt/experiment_h={h}.pth")
 
 
     X_train, y_train = encode_data(model.seq_encoder, train_val_ds)
@@ -364,6 +364,6 @@ for h in [1] + list(range(5, 41, 5)):
 
     results = bootstrap_eval(X_train, X_test, y_train, y_test, n_runs=10)
 
-    results.to_csv(f"experiments_h_results/experiment_h={h}.csv", index=False)
+    results.to_csv(f"experiments_h_results/sqrt/experiment_h={h}.pth", index=False)
 
     print(results.agg(["mean", "std"]))
