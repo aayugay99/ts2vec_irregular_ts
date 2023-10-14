@@ -13,5 +13,8 @@ seq_encoder:
         event_time: identity,
         time_delta: identity,
       }
+    hidden_size: 800
+    num_layers: 10
+    dropout: 0.1
 
 path_to_state_dict: checkpoints/age/ts2vec/ts2vec_age_date.pth
