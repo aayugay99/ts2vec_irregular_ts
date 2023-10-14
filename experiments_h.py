@@ -310,7 +310,7 @@ class TS2Vec(ABSModule):
         return "valid_loss"
 
 
-for h in np.linspace(1, 20, 96):
+for h in [1] + list(range(5, 41, 5)):
     trx_encoder = TimeTrxEncoder(
         col_time="event_time",
         embeddings={
@@ -326,7 +326,7 @@ for h in np.linspace(1, 20, 96):
 
     seq_encoder = ConvSeqEncoder(
         trx_encoder,
-        hidden_size=320,
+        hidden_size=1024,
         num_layers=10,
         dropout=0.1,
     )
@@ -347,7 +347,7 @@ for h in np.linspace(1, 20, 96):
     )
 
     trainer = Trainer(
-        max_epochs=30,
+        max_epochs=50,
         devices=[1],
         accelerator="gpu",
         callbacks=[checkpoint]
@@ -356,6 +356,8 @@ for h in np.linspace(1, 20, 96):
     trainer.fit(model, datamodule)
 
     model.load_state_dict(torch.load(checkpoint.best_model_path)["state_dict"])
+    torch.save(model.seq_encoder.state_dict(), f"experiments_h_results/experiment_h={h}.pth")
+
 
     X_train, y_train = encode_data(model.seq_encoder, train_val_ds)
     X_test, y_test = encode_data(model.seq_encoder, test_ds)
