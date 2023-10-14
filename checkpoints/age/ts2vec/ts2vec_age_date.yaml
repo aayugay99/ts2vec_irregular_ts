@@ -1,0 +1,20 @@
+name: ts2vec_age_date
+
+seq_encoder: 
+  _target_: nn.seq_encoder.ConvSeqEncoder
+  trx_encoder: 
+    _target_: ptls.nn.TrxEncoder
+    use_batch_norm_with_lens: True
+    norm_embeddings: False
+    embeddings_noise: 0.003
+    embeddings: {mcc_code: {in: 250, out: 16}}
+    numeric_values: {
+      amount: identity,
+      event_time: identity,
+      time_delta: identity
+    }
+  hidden_size: 800
+  num_layers: 10
+  dropout: 0.1
+
+path_to_state_dict: checkpoints/age/ts2vec/ts2vec_age_date.pth
