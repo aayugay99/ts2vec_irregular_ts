@@ -32,7 +32,7 @@ model:
   optimizer_partial:
     _partial_: True
     _target_: torch.optim.Adam
-    lr: 0.0004
+    lr: 0.001
   lr_scheduler_partial: 
     _partial_: True
     _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
@@ -48,7 +48,7 @@ model:
       embeddings_noise: 0.0003
       embeddings: {mcc_code: {in: 345, out: 24}}
       numeric_values: {amount: identity}
-    kernel_hiddens: [8, 4, 8]
+    kernel_hiddens: [8, 16, 8]
     hidden_size: 32
     num_layers: 10
     kernel_size: 5
@@ -67,3 +67,4 @@ trainer:
   max_epochs: 150
   devices: [1]
   accelerator: gpu
+  accumulate_grad_batches: 4

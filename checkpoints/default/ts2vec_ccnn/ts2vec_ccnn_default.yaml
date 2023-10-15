@@ -1,6 +1,6 @@
-name: ts2vec_ccnn_churn
+name: ts2vec_ccnn_default
 
-path: data/preprocessed_new/churn.parquet
+path: data/preprocessed_new/default.parquet
 
 split:
   random_state: 42
@@ -9,14 +9,13 @@ split:
 
 dataset:
   _target_: datasets.TS2VecDataset
-  min_seq_len: 15
 
 preprocessor:
   _target_: ptls.preprocessing.PandasDataPreprocessor
   col_id: user_id
   col_event_time:
     _target_: utils.preprocessing.CustomDatetimeNormalization
-    min_timestamp: 1475798400
+    min_timestamp: 1514769288
   cols_category: [mcc_code]
   cols_first_item: [global_target]
 
@@ -46,7 +45,7 @@ model:
       use_batch_norm_with_lens: True
       norm_embeddings: False
       embeddings_noise: 0.0003
-      embeddings: {mcc_code: {in: 345, out: 24}}
+      embeddings: {mcc_code: {in: 309, out: 24}}
       numeric_values: {amount: identity}
     kernel_hiddens: [8, 16, 8]
     hidden_size: 32

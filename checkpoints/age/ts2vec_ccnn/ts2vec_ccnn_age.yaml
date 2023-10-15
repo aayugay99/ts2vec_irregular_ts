@@ -1,6 +1,6 @@
-name: ts2vec_ccnn_churn
+name: ts2vec_ccnn_age
 
-path: data/preprocessed_new/churn.parquet
+path: data/preprocessed_new/age.parquet
 
 split:
   random_state: 42
@@ -9,14 +9,13 @@ split:
 
 dataset:
   _target_: datasets.TS2VecDataset
-  min_seq_len: 15
+  min_seq_len: 25
 
 preprocessor:
   _target_: ptls.preprocessing.PandasDataPreprocessor
   col_id: user_id
-  col_event_time:
-    _target_: utils.preprocessing.CustomDatetimeNormalization
-    min_timestamp: 1475798400
+  col_event_time: timestamp
+  event_time_transformation: none
   cols_category: [mcc_code]
   cols_first_item: [global_target]
 
@@ -46,10 +45,10 @@ model:
       use_batch_norm_with_lens: True
       norm_embeddings: False
       embeddings_noise: 0.0003
-      embeddings: {mcc_code: {in: 345, out: 24}}
+      embeddings: {mcc_code: {in: 250, out: 16}}
       numeric_values: {amount: identity}
     kernel_hiddens: [8, 16, 8]
-    hidden_size: 32
+    hidden_size: 16
     num_layers: 10
     kernel_size: 5
     dropout: 0.1
