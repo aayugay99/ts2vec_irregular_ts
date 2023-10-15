@@ -362,4 +362,4 @@ for run in range(5):
     trainer.fit(model, datamodule)
 
     model.load_state_dict(torch.load(checkpoint.best_model_path)["state_dict"])
-    torch.save(model.seq_encoder.state_dict(), f"ts2vec_age_new_instance_{run}.pth")
+    torch.save(model.seq_encoder.state_dict(), f"ts2vec_default_new_instance_{run}.pth")
