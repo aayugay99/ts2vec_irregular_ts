@@ -9,7 +9,7 @@ import torch
 
 from sklearn.model_selection import train_test_split
 
-@hydra.main(version_base=None, config_path="./config/default/ts2vec", config_name="ts2vec_default")
+@hydra.main(version_base=None, config_path="./config/default/ts2vec", config_name="ts2vec_ccnn")
 def main(cfg: DictConfig):
     df = pd.read_parquet(cfg["path"])
 
