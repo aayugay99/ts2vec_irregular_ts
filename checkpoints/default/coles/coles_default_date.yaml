@@ -19,4 +19,4 @@ seq_encoder:
   trainable_starter: static
   type: gru
 
-path_to_state_dict: checkpoints/churn/coles/coles_default_date.pth
+path_to_state_dict: checkpoints/default/coles/coles_default_date.pth
