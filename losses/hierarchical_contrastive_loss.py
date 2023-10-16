@@ -42,7 +42,7 @@ def temporal_contrastive_loss(z1, z2):
         return z1.new_tensor(0.)
     z = torch.cat([z1, z2], dim=1)  # B x 2T x C
     sim = torch.matmul(z, z.transpose(1, 2))  # B x 2T x 2T
-    logits = torch.tril(sim, diagonal=-1)[:, :, :-1]    # B x 2T x (2T-1)
+    logits = torch.tril(sim, diagonal=-1)[:, :, :-1]    # B x 2T x (2T - 1)
     logits += torch.triu(sim, diagonal=1)[:, :, 1:]
     logits = -F.log_softmax(logits, dim=-1)
     
