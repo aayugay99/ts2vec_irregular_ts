@@ -1,0 +1,21 @@
+name: ts2vec_default_date
+
+seq_encoder:
+  _target_: nn.seq_encoder.ConvSeqEncoder
+  trx_encoder:
+    _target_: ptls.nn.TrxEncoder
+    use_batch_norm_with_lens: True
+    norm_embeddings: False
+    embeddings_noise: 0.003
+    embeddings: {mcc_code: {in: 345, out: 16}}
+    out_of_index: clip
+    numeric_values: {
+      amount: identity,
+      event_time: identity,
+      time_delta: identity,
+    }
+  hidden_size: 800
+  num_layers: 10
+  dropout: 0.1
+
+path_to_state_dict: checkpoints/churn/coles/ts2vec_default_date.pth
