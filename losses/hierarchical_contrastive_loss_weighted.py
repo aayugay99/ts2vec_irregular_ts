@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from hierarchical_contrastive_loss import instance_contrastive_loss, temporal_contrastive_loss
+from .hierarchical_contrastive_loss import instance_contrastive_loss, temporal_contrastive_loss
 
 
 def hierarchical_contrastive_loss_weighted(z1, z2, t, h=1, sqrt=True, alpha=0.5, temporal_unit=0):
