@@ -1,6 +1,6 @@
-name: coles_churn
+name: coles_default
 
-path: data/preprocessed_new/churn.parquet
+path: data/preprocessed_new/default.parquet
 
 split:
   random_state: 42
@@ -41,19 +41,22 @@ model:
     factor: .9025
     patience: 5
     mode: max
-  seq_encoder: 
-    _target_: ptls.nn.seq_encoder.RnnSeqEncoder
-    trx_encoder: 
+  seq_encoder:
+    _target_: ptls.nn.RnnSeqEncoder
+    trx_encoder:
       _target_: ptls.nn.TrxEncoder
       use_batch_norm_with_lens: True
       norm_embeddings: False
-      embeddings_noise: 0.0003
-      embeddings: {mcc_code: {in: 345, out: 24}}
-      numeric_values: {amount: identity}
-    hidden_size: 1024
-    type: lstm
+      embeddings_noise: 0.003
+      embeddings: {mcc_code: {in: 345, out: 16}}
+      out_of_index: clip
+      numeric_values: {
+        amount: identity
+      }
+    hidden_size: 800
     bidir: False
     trainable_starter: static
+    type: gru
 
 checkpoint:
   _target_: pytorch_lightning.callbacks.ModelCheckpoint
@@ -69,4 +72,4 @@ trainer:
   devices: [0]
   accelerator: gpu
 
-n_runs: 1
+n_runs: 5

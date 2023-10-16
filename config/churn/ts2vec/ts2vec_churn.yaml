@@ -64,3 +64,5 @@ trainer:
   max_epochs: 50
   devices: [0]
   accelerator: gpu
+
+n_runs: 1
