@@ -1,4 +1,4 @@
-name: ts2vec_default
+name: ts2vec_default_weighted_2_sqrt
 
 path: data/preprocessed_new/default.parquet
 
@@ -14,8 +14,11 @@ dataset:
 preprocessor:
   _target_: ptls.preprocessing.PandasDataPreprocessor
   col_id: user_id
-  col_event_time: timestamp
-  event_time_transformation: dt_to_timestamp
+  col_event_time:
+    _target_: utils.preprocessing.CustomDatetimeNormalization
+    col_name_original: timestamp
+    col_name_target: event_time
+    min_timestamp: 1514769288
   cols_category: [mcc_code]
   cols_first_item: [global_target]
 
@@ -28,6 +31,10 @@ datamodule:
 
 model:
   _target_: modules.ts2vec_module.TS2Vec
+  loss: 
+    _target_: losses.HierarchicalContrastiveLossWeighted
+    sqrt: True
+    h: 2
   optimizer_partial:
     _partial_: True
     _target_: torch.optim.Adam
@@ -41,7 +48,7 @@ model:
   seq_encoder:
     _target_: nn.seq_encoder.ConvSeqEncoder
     trx_encoder:
-      _target_: ptls.nn.TrxEncoder
+      _target_: nn.trx_encoder.TimeTrxEncoder
       use_batch_norm_with_lens: True
       norm_embeddings: False
       embeddings_noise: 0.003

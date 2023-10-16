@@ -1,4 +1,4 @@
-name: ts2vec_default
+name: coles_default_date
 
 path: data/preprocessed_new/default.parquet
 
@@ -8,7 +8,10 @@ split:
   test_size: 0.1
 
 dataset:
-  _target_: datasets.TS2VecDataset
+  _target_: datasets.CustomColesDataset
+  split_count: 5
+  cnt_min: 15 
+  cnt_max: 150
   min_seq_len: 15
 
 preprocessor:
@@ -27,7 +30,7 @@ datamodule:
   valid_num_workers: 8
 
 model:
-  _target_: modules.ts2vec_module.TS2Vec
+  _target_: ptls.frames.coles.coles_module.CoLESModule
   optimizer_partial:
     _partial_: True
     _target_: torch.optim.Adam
@@ -37,9 +40,9 @@ model:
     _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
     factor: .9025
     patience: 5
-    mode: min
+    mode: max
   seq_encoder:
-    _target_: nn.seq_encoder.ConvSeqEncoder
+    _target_: ptls.nn.RnnSeqEncoder
     trx_encoder:
       _target_: ptls.nn.TrxEncoder
       use_batch_norm_with_lens: True
@@ -48,16 +51,19 @@ model:
       embeddings: {mcc_code: {in: 345, out: 16}}
       out_of_index: clip
       numeric_values: {
-        amount: identity
-      }
+      amount: identity,
+      event_time: identity,
+      time_delta: identity,
+    }
     hidden_size: 800
-    num_layers: 10
-    dropout: 0.1
+    bidir: False
+    trainable_starter: static
+    type: gru
 
 checkpoint:
   _target_: pytorch_lightning.callbacks.ModelCheckpoint
-  monitor: valid_loss
-  mode: min
+  monitor: recall_top_k
+  mode: max
 
 early_stopping: null
 logger: null
