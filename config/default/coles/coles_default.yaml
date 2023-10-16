@@ -1,0 +1,75 @@
+name: coles_default
+
+path: data/preprocessed_new/default.parquet
+
+split:
+  random_state: 42
+  val_size: 0.1
+  test_size: 0.1
+
+dataset:
+  _target_: datasets.CustomColesDataset
+  split_count: 5
+  cnt_min: 15 
+  cnt_max: 150
+  min_seq_len: 15
+
+preprocessor:
+  _target_: ptls.preprocessing.PandasDataPreprocessor
+  col_id: user_id
+  col_event_time: timestamp
+  event_time_transformation: dt_to_timestamp
+  cols_category: [mcc_code]
+  cols_first_item: [global_target]
+
+datamodule:
+  _target_: ptls.frames.PtlsDataModule
+  train_batch_size: 128
+  valid_batch_size: 128
+  train_num_workers: 8
+  valid_num_workers: 8
+
+model:
+  _target_: ptls.frames.coles.coles_module.CoLESModule
+  optimizer_partial:
+    _partial_: True
+    _target_: torch.optim.Adam
+    lr: 0.004
+  lr_scheduler_partial: 
+    _partial_: True
+    _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+    factor: .9025
+    patience: 5
+    mode: max
+  seq_encoder:
+    _target_: ptls.nn.RnnSeqEncoder
+    trx_encoder:
+      _target_: ptls.nn.TrxEncoder
+      use_batch_norm_with_lens: True
+      norm_embeddings: False
+      embeddings_noise: 0.003
+      embeddings: {mcc_code: {in: 345, out: 16}}
+      out_of_index: clip
+      numeric_values: {
+        amount: identity
+      }
+    hidden_size: 800
+    bidir: False
+    trainable_starter: static
+    type: gru
+
+checkpoint:
+  _target_: pytorch_lightning.callbacks.ModelCheckpoint
+  monitor: recall_top_k
+  mode: max
+
+early_stopping: null
+logger: null
+
+trainer:
+  _target_: pytorch_lightning.trainer.Trainer
+  max_epochs: 50
+  devices: [0]
+  accelerator: gpu
+
+n_runs: 5

@@ -1,6 +1,6 @@
 name: ts2vec_age
 
-path: data/preprocessed_new/age.parquet
+path: data/preprocessed_new/age_date.parquet
 
 split:
   random_state: 42
@@ -21,8 +21,8 @@ preprocessor:
 
 datamodule:
   _target_: ptls.frames.PtlsDataModule
-  train_batch_size: 64
-  valid_batch_size: 64
+  train_batch_size: 48
+  valid_batch_size: 48
   train_num_workers: 16
   valid_num_workers: 16
 
@@ -63,7 +63,7 @@ logger:
   api_key: agnHNC2vEt7tOxnnxT4LzYf7Y
   project_name: ts2vec-irregular
   workspace: stalex2902
-  experiment_name: TS2Vec_age_150_epochs_clean
+  experiment_name: TS2Vec_age_date_150_epochs
   display_summary_level: 0
 
 trainer:
@@ -71,3 +71,5 @@ trainer:
   max_epochs: 150
   devices: [0]
   accelerator: gpu
+
+n_runs: 1
