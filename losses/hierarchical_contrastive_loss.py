@@ -59,6 +59,6 @@ class HierarchicalContrastiveLoss(nn.Module):
         self.temporal_unit = temporal_unit
 
     def forward(self, embeddings, _):
-        out1, out2 = embeddings
+        out1, out2, _ = embeddings
         return hierarchical_contrastive_loss(out1, out2, self.alpha, self.temporal_unit)
     
