@@ -61,6 +61,7 @@ class TS2Vec(ABSModule):
     def __init__(
         self,
         seq_encoder,
+        col_time="event_time",
         mask_mode="binomial",
         head=None,
         loss=None,
@@ -90,19 +91,15 @@ class TS2Vec(ABSModule):
         self._head = head
         self.valid_loss = MeanMetric()
 
+        self.col_time = col_time
+
     def shared_step(self, x, y):
         trx_encoder = self._seq_encoder.trx_encoder
         seq_encoder = self._seq_encoder.seq_encoder 
 
         seq_lens = x.seq_lens
-        encoder_out = trx_encoder(x).payload
-
-        if isinstance(encoder_out, torch.Tensor):
-            x = encoder_out
-            t = None
-        else:
-            x = encoder_out["embeddings"]
-            t = encoder_out["event_time"]
+        x = trx_encoder(x).payload
+        t = x.payload[self.col_time]
 
         ts_l = x.size(1)
         crop_l = np.random.randint(low=2 ** (self.temporal_unit + 1), high=ts_l+1)
@@ -115,9 +112,8 @@ class TS2Vec(ABSModule):
         input1 = take_per_row(x, crop_offset + crop_eleft, crop_right - crop_eleft)
         input2 = take_per_row(x, crop_offset + crop_left, crop_eright - crop_left)
         
-        if t is not None:
-            t = take_per_row(t, crop_offset + crop_eleft, crop_right - crop_eleft)
-            t = t[:, -crop_l:]
+        t = take_per_row(t, crop_offset + crop_eleft, crop_right - crop_eleft)
+        t = t[:, -crop_l:]
         
         input1_masked = mask_input(input1, self.mask_mode)
         input2_masked = mask_input(input2, self.mask_mode)
