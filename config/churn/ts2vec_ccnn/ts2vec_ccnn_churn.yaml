@@ -17,6 +17,8 @@ preprocessor:
   col_event_time:
     _target_: utils.preprocessing.CustomDatetimeNormalization
     min_timestamp: 1475798400
+    col_name_original: timestamp
+    col_name_target: event_time
   cols_category: [mcc_code]
   cols_first_item: [global_target]
 
@@ -28,7 +30,7 @@ datamodule:
   valid_num_workers: 8
 
 model:
-  _target_: modules.ts2vec_module.TS2Vec # TODO: fix target
+  _target_: modules.ts2vec_module.TS2VecCCNN
   optimizer_partial:
     _partial_: True
     _target_: torch.optim.Adam
@@ -40,9 +42,9 @@ model:
     patience: 5
     mode: min
   seq_encoder: 
-    _target_: nn.seq_encoder.ConvSeqEncoder
+    _target_: nn.seq_encoder.ContConvSeqEncoder
     trx_encoder: 
-      _target_: ptls.nn.TimeTrxEncoder
+      _target_: nn.trx_encoder.TimeTrxEncoder
       use_batch_norm_with_lens: True
       norm_embeddings: False
       embeddings_noise: 0.0003
@@ -68,3 +70,5 @@ trainer:
   devices: [1]
   accelerator: gpu
   accumulate_grad_batches: 4
+
+n_runs: 5
