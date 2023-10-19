@@ -6,7 +6,7 @@ from ptls.data_load.padded_batch import PaddedBatch
 from ptls.nn.head import Head
 
 from torchmetrics import MeanMetric
-from losses.hierarchical_contrastive_loss import HierarchicalContrastiveLoss
+from losses.dynamic_pool_loss import DynamicPoolLoss
 
 
 def generate_continuous_mask(B, T, n=5, l=0.1):
@@ -82,7 +82,7 @@ def pool_fixed_span(stepwise_embeds, timestamps, span: int, stride: int):
         return pooled_embeds, pooled_time
 
 
-class TS2Vec(ABSModule):
+class TS2VecDynamicPool(ABSModule):
     '''The TS2Vec model'''
     
     def __init__(
@@ -103,7 +103,7 @@ class TS2Vec(ABSModule):
             head = Head(use_norm_encoder=True)
         
         if loss is None:
-            loss = HierarchicalContrastiveLoss(alpha=0.5, temporal_unit=0)
+            loss = DynamicPoolLoss(alpha=0.5, temporal_unit=0)
 
         self.temporal_unit = loss.temporal_unit
         self.mask_mode = mask_mode
@@ -121,10 +121,13 @@ class TS2Vec(ABSModule):
         trx_encoder = self._seq_encoder.trx_encoder
         seq_encoder = self._seq_encoder.seq_encoder 
 
-        event_time = x["event_time"]
-        time_delta = x["time_delta"]
-
+        event_time = x.payload["event_time"]
+        time_deltas = x.payload["time_delta"]
         seq_lens = x.seq_lens
+
+        time_deltas[x.seq_len_mask == 0] = time_deltas.max()
+        adjusted_event_time = torch.cumsum(time_deltas, dim=-1) + event_time[:, :1]
+
         x = trx_encoder(x).payload
 
         ts_l = x.size(1)
@@ -137,7 +140,8 @@ class TS2Vec(ABSModule):
 
         input1 = take_per_row(x, crop_offset + crop_eleft, crop_right - crop_eleft)
         input2 = take_per_row(x, crop_offset + crop_left, crop_eright - crop_left)
-        
+        times = take_per_row(adjusted_event_time, crop_offset + crop_left, crop_right - crop_left)
+
         input1_masked = mask_input(input1, self.mask_mode)
         input2_masked = mask_input(input2, self.mask_mode)
         
@@ -151,11 +155,11 @@ class TS2Vec(ABSModule):
             out1 = self._head(out1)
             out2 = self._head(out2)
 
-        return (out1, out2), y
+        return (out1, out2, times), y
 
     def validation_step(self, batch, _):
-        y_h, y = self.shared_step(*batch)
-        loss = self._loss(y_h, y)
+        augmented_sample_with_timestamps, y = self.shared_step(*batch)
+        loss = self._loss(augmented_sample_with_timestamps, y)
         self.valid_loss(loss)
 
     def validation_epoch_end(self, outputs):
