@@ -24,7 +24,7 @@ def hierarchical_contrastive_loss(z1, z2, alpha=0.5, temporal_unit=0):
 def instance_contrastive_loss(z1, z2):
     B, T = z1.size(0), z1.size(1)
     if B == 1:
-        return z1.new_tensor(0.)
+        return z1.new_tensor(0., requires_grad=True)
     z = torch.cat([z1, z2], dim=0)  # 2B x T x C
     z = z.transpose(0, 1)  # T x 2B x C
     sim = torch.matmul(z, z.transpose(1, 2))  # T x 2B x 2B
@@ -39,7 +39,7 @@ def instance_contrastive_loss(z1, z2):
 def temporal_contrastive_loss(z1, z2):
     B, T = z1.size(0), z1.size(1)
     if T == 1:
-        return z1.new_tensor(0.)
+        return z1.new_tensor(0., requires_grad=True)
     z = torch.cat([z1, z2], dim=1)  # B x 2T x C
     sim = torch.matmul(z, z.transpose(1, 2))  # B x 2T x 2T
     logits = torch.tril(sim, diagonal=-1)[:, :, :-1]    # B x 2T x (2T - 1)

@@ -98,8 +98,8 @@ class TS2Vec(ABSModule):
         seq_encoder = self._seq_encoder.seq_encoder 
 
         seq_lens = x.seq_lens
-        x = trx_encoder(x).payload
         t = x.payload[self.col_time]
+        x = trx_encoder(x).payload
 
         ts_l = x.size(1)
         crop_l = np.random.randint(low=2 ** (self.temporal_unit + 1), high=ts_l+1)
