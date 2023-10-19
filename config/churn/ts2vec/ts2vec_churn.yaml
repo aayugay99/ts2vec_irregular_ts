@@ -65,4 +65,4 @@ trainer:
   devices: [0]
   accelerator: gpu
 
-n_runs: 1
+n_runs: 5
