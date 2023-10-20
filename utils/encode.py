@@ -4,8 +4,8 @@ import torch
 from ptls.data_load.utils import collate_feature_dict
 
 
-def encode_data(seq_encoder, data, batch_size=64):
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+def encode_data(seq_encoder, data, batch_size=64, device="cuda"):
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
 
     seq_encoder.to(device)
     seq_encoder.eval()

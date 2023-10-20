@@ -18,4 +18,4 @@ seq_encoder:
   num_layers: 10
   dropout: 0.1
 
-path_to_state_dict: checkpoints/churn/coles/ts2vec_default_date.pth
+path_to_folder: checkpoints/default/ts2vec/ts2vec_default_date

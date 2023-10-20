@@ -61,6 +61,7 @@ class TS2Vec(ABSModule):
     def __init__(
         self,
         seq_encoder,
+        col_time="event_time",
         mask_mode="binomial",
         head=None,
         loss=None,
@@ -90,11 +91,14 @@ class TS2Vec(ABSModule):
         self._head = head
         self.valid_loss = MeanMetric()
 
+        self.col_time = col_time
+
     def shared_step(self, x, y):
         trx_encoder = self._seq_encoder.trx_encoder
         seq_encoder = self._seq_encoder.seq_encoder 
 
         seq_lens = x.seq_lens
+        t = x.payload[self.col_time]
         x = trx_encoder(x).payload
 
         ts_l = x.size(1)
@@ -107,6 +111,9 @@ class TS2Vec(ABSModule):
 
         input1 = take_per_row(x, crop_offset + crop_eleft, crop_right - crop_eleft)
         input2 = take_per_row(x, crop_offset + crop_left, crop_eright - crop_left)
+        
+        t = take_per_row(t, crop_offset + crop_eleft, crop_right - crop_eleft)
+        t = t[:, -crop_l:]
         
         input1_masked = mask_input(input1, self.mask_mode)
         input2_masked = mask_input(input2, self.mask_mode)
@@ -121,7 +128,7 @@ class TS2Vec(ABSModule):
             out1 = self._head(out1)
             out2 = self._head(out2)
 
-        return (out1, out2), y
+        return (out1, out2, t), y
 
     def validation_step(self, batch, _):
         y_h, y = self.shared_step(*batch)
@@ -139,7 +146,7 @@ class TS2Vec(ABSModule):
     @property
     def metric_name(self):
         return "valid_loss"
-
+    
 
 class TS2VecCCNN(TS2Vec):
     '''The TS2Vec model'''

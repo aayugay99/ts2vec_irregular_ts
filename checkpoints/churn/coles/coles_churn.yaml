@@ -17,4 +17,4 @@ seq_encoder:
   trainable_starter: static
   type: lstm
 
-path_to_state_dict: checkpoints/churn/coles/coles_churn.pth
+path_to_folder: checkpoints/churn/coles/coles_churn

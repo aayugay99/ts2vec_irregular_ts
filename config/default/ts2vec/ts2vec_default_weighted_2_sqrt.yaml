@@ -1,0 +1,78 @@
+name: ts2vec_default_weighted_2_sqrt
+
+path: data/preprocessed_new/default.parquet
+
+split:
+  random_state: 42
+  val_size: 0.1
+  test_size: 0.1
+
+dataset:
+  _target_: datasets.TS2VecDataset
+  min_seq_len: 15
+
+preprocessor:
+  _target_: ptls.preprocessing.PandasDataPreprocessor
+  col_id: user_id
+  col_event_time:
+    _target_: utils.preprocessing.CustomDatetimeNormalization
+    col_name_original: timestamp
+    col_name_target: event_time
+    min_timestamp: 1514769288
+  cols_category: [mcc_code]
+  cols_first_item: [global_target]
+
+datamodule:
+  _target_: ptls.frames.PtlsDataModule
+  train_batch_size: 128
+  valid_batch_size: 128
+  train_num_workers: 8
+  valid_num_workers: 8
+
+model:
+  _target_: modules.ts2vec_module.TS2Vec
+  loss: 
+    _target_: losses.HierarchicalContrastiveLossWeighted
+    sqrt: True
+    h: 2
+  optimizer_partial:
+    _partial_: True
+    _target_: torch.optim.Adam
+    lr: 0.004
+  lr_scheduler_partial: 
+    _partial_: True
+    _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+    factor: .9025
+    patience: 5
+    mode: min
+  seq_encoder:
+    _target_: nn.seq_encoder.ConvSeqEncoder
+    trx_encoder:
+      _target_: nn.trx_encoder.TimeTrxEncoder
+      use_batch_norm_with_lens: True
+      norm_embeddings: False
+      embeddings_noise: 0.003
+      embeddings: {mcc_code: {in: 345, out: 16}}
+      out_of_index: clip
+      numeric_values: {
+        amount: identity
+      }
+    hidden_size: 800
+    num_layers: 10
+    dropout: 0.1
+
+checkpoint:
+  _target_: pytorch_lightning.callbacks.ModelCheckpoint
+  monitor: valid_loss
+  mode: min
+
+early_stopping: null
+logger: null
+
+trainer:
+  _target_: pytorch_lightning.trainer.Trainer
+  max_epochs: 50
+  devices: [0]
+  accelerator: gpu
+
+n_runs: 5
