@@ -1,6 +1,6 @@
-name: ts2vec_churn_dyn_pool
+name: ts2vec_default_dyn_pool
 
-path: data/preprocessed_new/churn.parquet
+path: data/preprocessed_new/default.parquet
 
 split:
   random_state: 42
@@ -18,16 +18,16 @@ preprocessor:
     _target_: utils.preprocessing.CustomDatetimeNormalization
     col_name_original: timestamp
     col_name_target: event_time
-    min_timestamp: 1475798400
+    min_timestamp: 1514769288
   cols_category: [mcc_code]
   cols_first_item: [global_target]
 
 datamodule:
   _target_: ptls.frames.PtlsDataModule
-  train_batch_size: 48
-  valid_batch_size: 48
-  train_num_workers: 16
-  valid_num_workers: 16
+  train_batch_size: 128
+  valid_batch_size: 128
+  train_num_workers: 8
+  valid_num_workers: 8
 
 model:
   _target_: modules.TS2VecDynamicPool
@@ -43,16 +43,19 @@ model:
     factor: .9025
     patience: 5
     mode: min
-  seq_encoder: 
+  seq_encoder:
     _target_: nn.seq_encoder.ConvSeqEncoder
-    trx_encoder: 
+    trx_encoder:
       _target_: ptls.nn.TrxEncoder
       use_batch_norm_with_lens: True
       norm_embeddings: False
       embeddings_noise: 0.003
-      embeddings: {mcc_code: {in: 345, out: 24}}
-      numeric_values: {amount: identity}
-    hidden_size: 1024
+      embeddings: {mcc_code: {in: 345, out: 16}}
+      out_of_index: clip
+      numeric_values: {
+        amount: identity
+      }
+    hidden_size: 800
     num_layers: 10
     dropout: 0.1
 
@@ -62,7 +65,6 @@ checkpoint:
   mode: min
 
 early_stopping: null
-
 logger: null
 
 trainer:
