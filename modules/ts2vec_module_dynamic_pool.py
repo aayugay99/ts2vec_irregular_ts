@@ -81,7 +81,7 @@ def pool_fixed_span(stepwise_embeds, timestamps, span: int, stride: int):
         
         return pooled_embeds, pooled_time
 
-
+# TODO: merge this with the main pipeline
 class TS2VecDynamicPool(ABSModule):
     '''The TS2Vec model'''
     
