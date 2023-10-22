@@ -9,3 +9,5 @@ vital in health monitoring and finance domains. These data pose challenges due t
 conda env create -f environment.yml
 conda activate ts2vec
 ```
+# Datasets and models
+Datasets we used in our experiments, as well as the pretrained models' weights and the corresponding configuration files, are available [online](https://disk.yandex.ru/d/qLjmH_LHEXgIcA).
